@@ -1,4 +1,4 @@
-module github.com/seiji/terraform-provider-slack
+module github.com/seiji/terraform-provider-slakk
 
 go 1.13
 
