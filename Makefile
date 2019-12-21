@@ -16,9 +16,23 @@ build: ${DIST}/${NAME}
 clean:
 	rm -rf ${DIST}/*
 
+plan: install
+	@cd examples && terraform init && terraform plan
+
+apply:
+	@cd examples && terraform apply
+
+destroy:
+	@cd examples && terraform destroy
+
+fmt:
+	@gofmt -l -w -s .
+	@terraform fmt -recursive .
+
 install: build
-	mkdir -p $(TARGET); \
+	@mkdir -p $(TARGET); \
 	install -m 0755 $(DIST)/${NAME} $(TARGET)/${NAME}
+	@echo "installed"
 
 uninstall:
 	rm -rf $(TARGET)/${NAME}
