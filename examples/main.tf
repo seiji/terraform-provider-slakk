@@ -7,6 +7,7 @@ data slack_user seiji {
 resource slack_channel public {
   name       = "tf-public"
   is_private = false
+  user_ids   = [data.slack_user.seiji.id]
 }
 
 output channel {

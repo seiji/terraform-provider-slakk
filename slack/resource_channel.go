@@ -1,11 +1,7 @@
 package slack
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/nlopes/slack"
 )
 
 func resourceChannel() *schema.Resource {
@@ -37,6 +33,13 @@ func resourceChannel() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"user_ids": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 		},
 	}
 }
@@ -44,43 +47,33 @@ func resourceChannel() *schema.Resource {
 func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	name := d.Get("name").(string)
 	isPrivate := d.Get("is_private").(bool)
+	userIds := toStringSlice(d.Get("user_ids").([]interface{}))
 
 	api := m.(*slackAPI)
-	channel, err := api.CreateConversation(name, isPrivate)
+	_, err := api.CreateConversation(name, isPrivate, userIds...)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(channel.ID)
-	d.Set("is_general", channel.IsGeneral)
-	d.Set("is_archived", channel.IsArchived)
-	d.Set("is_private", channel.IsPrivate)
-	d.Set("is_shared", channel.IsShared)
 	return resourceChannelRead(d, m)
 }
 
 func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*slackAPI)
-	channels, err := api.GetChannels(false)
+
+	name := d.Get("name").(string)
+
+	channel, err := api.getChannel(name)
 	if err != nil {
 		return err
 	}
 
-	var channel *slack.Channel
-	name := d.Get("name").(string)
-	for _, c := range channels {
-		if strings.ToLower(c.Name) == strings.ToLower(name) {
-			channel = &c
-			break
-		}
-	}
-
-	if channel == nil {
-		return fmt.Errorf("channel '%s' is not found", name)
-	}
-
 	d.SetId(channel.ID)
+
+	d.Set("is_general", channel.IsGeneral)
+	d.Set("is_archived", channel.IsArchived)
 	d.Set("is_private", channel.IsPrivate)
+	d.Set("is_shared", channel.IsShared)
 
 	return nil
 }
@@ -90,5 +83,19 @@ func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
+	api := m.(*slackAPI)
+
+	name := d.Get("name").(string)
+
+	channel, err := api.getChannel(name)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = api.CloseConversation(channel.ID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

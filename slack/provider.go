@@ -55,3 +55,22 @@ func (api *slackAPI) getUserInfo(name string) (user *slack.User, err error) {
 
 	return
 }
+
+func (api *slackAPI) getChannel(name string) (channel *slack.Channel, err error) {
+	var channels []slack.Channel
+	channels, err = api.GetChannels(false)
+	if err != nil {
+		return
+	}
+
+	for _, c := range channels {
+		if strings.ToLower(c.Name) == strings.ToLower(name) {
+			channel = &c
+			return
+		}
+	}
+
+	err = fmt.Errorf("channel '%s' is not found", name)
+
+	return
+}
