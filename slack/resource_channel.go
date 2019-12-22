@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -19,6 +20,18 @@ func resourceChannel() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"is_general": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"is_archived": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"is_shared": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"is_private": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -30,15 +43,19 @@ func resourceChannel() *schema.Resource {
 
 func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
 	name := d.Get("name").(string)
-	// isPrivate := d.Get("is_private").(bool)
+	isPrivate := d.Get("is_private").(bool)
 
 	api := m.(*slackAPI)
-	channel, err := api.CreateChannel(name)
+	channel, err := api.CreateConversation(name, isPrivate)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(channel.ID)
+	d.Set("is_general", channel.IsGeneral)
+	d.Set("is_archived", channel.IsArchived)
+	d.Set("is_private", channel.IsPrivate)
+	d.Set("is_shared", channel.IsShared)
 	return resourceChannelRead(d, m)
 }
 
@@ -56,6 +73,10 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 			channel = &c
 			break
 		}
+	}
+
+	if channel == nil {
+		return fmt.Errorf("channel '%s' is not found", name)
 	}
 
 	d.SetId(channel.ID)

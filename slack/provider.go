@@ -1,6 +1,9 @@
 package slack
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"github.com/nlopes/slack"
@@ -15,6 +18,7 @@ func Provider() terraform.ResourceProvider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"slack_channel": dataSourceSlackChannel(),
+			"slack_user":    dataSourceSlackUser(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"slack_channel": resourceChannel(),
@@ -32,4 +36,22 @@ func Provider() terraform.ResourceProvider {
 
 type slackAPI struct {
 	*slack.Client
+}
+
+func (api *slackAPI) getUserInfo(name string) (user *slack.User, err error) {
+	var users []slack.User
+	if users, err = api.GetUsers(); err != nil {
+		return
+	}
+
+	for _, u := range users {
+		if strings.ToLower(u.Name) == strings.ToLower(name) {
+			user = &u
+			return
+		}
+	}
+
+	err = fmt.Errorf("user '%s' is not found", name)
+
+	return
 }
