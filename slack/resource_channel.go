@@ -1,6 +1,8 @@
 package slack
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -10,6 +12,9 @@ func resourceChannel() *schema.Resource {
 		Read:   resourceChannelRead,
 		Update: resourceChannelUpdate,
 		Delete: resourceChannelDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceChannelImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -33,42 +38,37 @@ func resourceChannel() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"user_ids": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional: true,
-			},
+			// "user_ids": {
+			// 	Type: schema.TypeList,
+			// 	Elem: &schema.Schema{
+			// 		Type: schema.TypeString,
+			// 	},
+			// 	Optional: true,
+			// },
 		},
 	}
 }
 
-func resourceChannelCreate(d *schema.ResourceData, m interface{}) error {
+func resourceChannelCreate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
-	isPrivate := d.Get("is_private").(bool)
-	userIds := toStringSlice(d.Get("user_ids").([]interface{}))
-
-	api := m.(*slackAPI)
-	_, err := api.CreateConversation(name, isPrivate, userIds...)
-	if err != nil {
-		return err
-	}
-
-	return resourceChannelRead(d, m)
-}
-
-func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
-	api := m.(*slackAPI)
-
-	name := d.Get("name").(string)
-
-	channel, err := api.getChannel(name)
+	api := meta.(*slackAPI)
+	channel, err := api.CreateChannel(name)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(channel.ID)
+	return resourceChannelRead(d, meta)
+}
+
+func resourceChannelRead(d *schema.ResourceData, meta interface{}) error {
+	channelID := d.Id()
+	api := meta.(*slackAPI)
+
+	channel, err := api.GetChannelInfo(channelID)
+	if err != nil {
+		return err
+	}
 
 	d.Set("is_general", channel.IsGeneral)
 	d.Set("is_archived", channel.IsArchived)
@@ -78,24 +78,33 @@ func resourceChannelRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceChannelUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceChannelRead(d, m)
+func resourceChannelUpdate(d *schema.ResourceData, meta interface{}) error {
+	channelID := d.Id()
+	api := meta.(*slackAPI)
+
+	_, err := api.GetChannelInfo(channelID)
+	if err != nil {
+		return err
+	}
+
+	if d.HasChange("name") {
+		name := d.Get("name").(string)
+		if _, err = api.RenameChannel(channelID, name); err != nil {
+			return err
+		}
+    }
+	return resourceChannelRead(d, meta)
 }
 
-func resourceChannelDelete(d *schema.ResourceData, m interface{}) error {
-	api := m.(*slackAPI)
-
-	name := d.Get("name").(string)
-
-	channel, err := api.getChannel(name)
-	if err != nil {
-		return err
-	}
-
-	_, _, err = api.CloseConversation(channel.ID)
-	if err != nil {
-		return err
-	}
-
+func resourceChannelDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[WARN] delete is not yet implemented. ")
 	return nil
+}
+
+func resourceChannelImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	name := d.Id()
+
+	d.Set("name", name)
+
+	return []*schema.ResourceData{d}, nil
 }

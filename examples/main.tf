@@ -4,14 +4,13 @@ data slack_user seiji {
   name = "seiji"
 }
 
-resource slack_channel public {
+resource slack_channel tf_public {
   name       = "tf-public"
   is_private = false
-  user_ids   = [data.slack_user.seiji.id]
 }
 
 output channel {
-  value = slack_channel.public
+  value = slack_channel.tf_public
 }
 
 output user {
