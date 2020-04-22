@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
-// Provider is for slack.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ConfigureFunc: func(d *schema.ResourceData) (interface{}, error) {
@@ -17,8 +16,10 @@ func Provider() terraform.ResourceProvider {
 			return &slackAPI{slack.New(accessToken)}, nil
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"slack_channel": dataSourceSlackChannel(),
-			"slack_user":    dataSourceSlackUser(),
+			"slack_channel":       dataSourceSlackChannel(),
+			"slack_conversations": dataSourceSlackConversations(),
+			"slack_emojis":        dataSourceSlackEmojis(),
+			"slack_user":          dataSourceSlackUser(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"slack_channel": resourceChannel(),

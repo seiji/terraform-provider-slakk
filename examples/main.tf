@@ -1,18 +1,14 @@
-provider slack {}
-
-data slack_user seiji {
-  name = "seiji"
+data slack_conversations current {
+  exclude_archived = true
+  types            = ["public_channel", "private_channel"]
 }
 
-resource slack_channel tf_public {
-  name       = "tf-public"
-  is_private = false
+data slack_emojis current {}
+
+output conversations {
+  value = data.slack_conversations.current
 }
 
-output channel {
-  value = slack_channel.tf_public
-}
-
-output user {
-  value = data.slack_user.seiji
+output emojis {
+  value = data.slack_emojis.current
 }

@@ -19,8 +19,8 @@ clean:
 plan: install
 	@cd examples && terraform init && terraform plan
 
-apply:
-	@cd examples && terraform apply
+apply: install
+	@cd examples && terraform init && terraform apply
 
 destroy:
 	@cd examples && terraform destroy
@@ -31,7 +31,7 @@ fmt:
 
 install: build
 	@mkdir -p $(TARGET); \
-	install -m 0755 $(DIST)/${NAME} $(TARGET)/${NAME}
+	install -m 0755 -p $(DIST)/${NAME} $(TARGET)/${NAME}
 	@echo "installed"
 
 uninstall:

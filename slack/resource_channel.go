@@ -20,6 +20,7 @@ func resourceChannel() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"is_general": {
 				Type:     schema.TypeBool,
@@ -70,6 +71,7 @@ func resourceChannelRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.Set("name", channel.Name)
 	d.Set("is_general", channel.IsGeneral)
 	d.Set("is_archived", channel.IsArchived)
 	d.Set("is_private", channel.IsPrivate)
@@ -92,7 +94,7 @@ func resourceChannelUpdate(d *schema.ResourceData, meta interface{}) error {
 		if _, err = api.RenameChannel(channelID, name); err != nil {
 			return err
 		}
-    }
+	}
 	return resourceChannelRead(d, meta)
 }
 
@@ -102,9 +104,5 @@ func resourceChannelDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceChannelImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	name := d.Id()
-
-	d.Set("name", name)
-
 	return []*schema.ResourceData{d}, nil
 }
